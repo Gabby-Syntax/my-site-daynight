@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fancy Day / Night Toggle</title>
+  <style>
+    :root{
+      --toggle-w: 420px;
+      --toggle-h: 180px;
+      --knob-size: 120px;
+      --duration: 900ms;
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(180deg,#87ceeb 0%, #fdd9a7 100%);
+      transition: background var(--duration) ease;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .wrapper{ text-align:center; }
+
+    /* Toggle */
+    .toggle-container{
+      position:relative;
+      width:var(--toggle-w);
+      height:var(--toggle-h);
+      border-radius: calc(var(--toggle-h)/2);
+      overflow:hidden;
+      box-shadow: 0 20px 50px rgba(2,6,23,0.35);
+      cursor:pointer;
+      user-select:none;
+      outline:none;
+      border: 6px solid rgba(255,255,255,0.12);
+      transition: transform 150ms ease;
+      display:block;
+      margin: 0 auto;
+    }
+
+    .toggle-container:active{ transform:scale(0.985); }
+    .toggle-container:focus{ box-shadow: 0 0 0 6px rgba(255,255,255,0.10); }
+
+    /* "Sky" inside */
+    .sky{
+      position:absolute; inset:0;
+      background: linear-gradient(180deg, #87ceeb 0%, #cdeffd 50%, #f8d3a2 100%);
+      transition: background var(--duration) ease;
+    }
+
+    /* Night body + sky */
+    body.night{ background: linear-gradient(180deg,#051428 0%, #0b2740 100%); }
+    body.night .sky{ background: linear-gradient(180deg,#081426 0%, #10283b 60%, #0b1f33 100%); }
+
+    /* Sun */
+    .sun{
+      position:absolute;
+      top: calc(50% - var(--knob-size)/2 - 8px);
+      left: 28px;
+      width:var(--knob-size);
+      height:var(--knob-size);
+      border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #fff59d 0%, #ffd54f 30%, #ffb300 60%);
+      box-shadow: 0 12px 30px rgba(255, 180, 0, 0.25), 0 0 40px rgba(255, 200, 50, 0.12);
+      transition: left var(--duration) ease, transform var(--duration) ease, box-shadow var(--duration) ease, opacity var(--duration) ease;
+      transform-origin:center;
+      z-index:6;
+    }
+
+    /* sun glow */
+    .sun::before{
+      content:''; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      width:260px; height:260px; border-radius:50%;
+      background: radial-gradient(circle, rgba(255,200,50,0.06) 10%, transparent 45%);
+      pointer-events:none;
+      transition: opacity var(--duration) ease;
+      z-index:4;
+    }
+
+    /* Moon */
+    .moon{
+      position:absolute;
+      top: calc(50% - (var(--knob-size) - 10px)/2 - 4px);
+      left: -160px;
+      width: calc(var(--knob-size) - 10px);
+      height: calc(var(--knob-size) - 10px);
+      border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #f6f7f8 0%, #dcdfe3 55%);
+      box-shadow: inset -8px -6px 18px rgba(0,0,0,0.12), 0 6px 20px rgba(0,0,0,0.22);
+      transition: left var(--duration) ease, transform var(--duration) ease, opacity var(--duration) ease;
+      z-index:7;
+    }
+    .moon::before, .moon::after{
+      content:''; position:absolute; background: rgba(0,0,0,0.06); border-radius:50%;
+    }
+    .moon::before{ width:18px; height:18px; left:22%; top:28%; }
+    .moon::after{ width:28px; height:28px; left:52%; top:54%; opacity:0.95; }
+
+    /* Night positions */
+    body.night .sun{ left: calc(100% + 30px); transform: rotate(12deg) scale(0.96); opacity:0.95; box-shadow: 0 8px 30px rgba(255,180,0,0.08); }
+    body.night .moon{ left: calc(100% - var(--knob-size) - 40px); transform: scale(1.02); opacity:1; }
+
+    /* Clouds built from 3 puffs */
+    .cloud{ position:absolute; display:flex; gap:8px; align-items:center; transition: opacity 600ms ease, transform 6s linear; }
+    .cloud .puff{ background:#fff; border-radius:50%; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+
+    .cloud1{ left: 64px; top: 28px; opacity:1; animation: drift 12s linear infinite; }
+    .cloud1 .puff:nth-child(1){ width:54px;height:34px; }
+    .cloud1 .puff:nth-child(2){ width:44px;height:28px; transform: translateX(-10px); }
+    .cloud1 .puff:nth-child(3){ width:36px;height:24px; transform: translateX(-20px); }
+
+    .cloud2{ left: 220px; top: 70px; opacity:0.92; animation: drift 18s linear infinite reverse; }
+    .cloud2 .puff:nth-child(1){ width:46px;height:30px; }
+    .cloud2 .puff:nth-child(2){ width:36px;height:26px; transform: translateX(-12px); }
+    .cloud2 .puff:nth-child(3){ width:26px;height:20px; transform: translateX(-22px); }
+
+    .cloud3{ left: 320px; top: 40px; opacity:0.95; animation: drift 14s linear infinite; }
+    .cloud3 .puff:nth-child(1){ width:40px;height:26px; }
+    .cloud3 .puff:nth-child(2){ width:32px;height:22px; transform: translateX(-10px); }
+    .cloud3 .puff:nth-child(3){ width:22px;height:18px; transform: translateX(-20px); }
+
+    body.night .cloud{ opacity:0; transform: translateY(-6px); }
+
+    /* Cloud drift animation */
+    @keyframes drift{
+      0%{ transform: translateX(0); }
+      50%{ transform: translateX(10px); }
+      100%{ transform: translateX(0); }
+    }
+
+    /* Stars */
+    .star{ position:absolute; width:6px; height:6px; border-radius:50%; background:#fff; opacity:0; transform-origin:center; box-shadow:0 0 8px rgba(255,255,255,0.9); animation: twinkle 3s infinite ease-in-out; transition: opacity 300ms ease; }
+    .star1{ left: 40px; top: 24px; animation-delay:0s; }
+    .star2{ left: 90px; top: 16px; animation-delay:0.4s; }
+    .star3{ left: 140px; top: 34px; animation-delay:0.8s; }
+    .star4{ left: 200px; top: 20px; animation-delay:1.2s; }
+    .star5{ left: 280px; top: 38px; animation-delay:1.6s; }
+    .star6{ left: 120px; top: 62px; animation-delay:0.2s; }
+    .star7{ left: 60px; top: 72px; animation-delay:0.6s; }
+    .star8{ left: 240px; top: 70px; animation-delay:1s; }
+    .star9{ left: 320px; top: 54px; animation-delay:1.4s; }
+    .star10{ left: 360px; top: 24px; animation-delay:0.9s; }
+
+    @keyframes twinkle{
+      0%{ opacity:0; transform: scale(0.8); }
+      50%{ opacity:1; transform: scale(1.25); }
+      100%{ opacity:0; transform: scale(0.8); }
+    }
+
+    /* show stars during night */
+    body.night .star{ opacity:1; }
+
+    /* Label below toggle */
+    .status{
+      margin-top:18px; font-size:18px; font-weight:600; color:#083652; transition:color var(--duration) ease;
+      letter-spacing:0.6px;
+    }
+    body.night .status{ color:#cfe8ff; }
+
+    /* small responsive tweaks */
+    @media (max-width:480px){
+      :root{ --toggle-w: 320px; --toggle-h:140px; --knob-size:96px; }
+      .status{ font-size:16px; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div id="toggle" class="toggle-container" role="switch" aria-checked="false" tabindex="0" aria-label="Day/Night toggle">
+      <div class="sky"></div>
+
+      <!-- sun + moon -->
+      <div class="sun" aria-hidden="true"></div>
+      <div class="moon" aria-hidden="true"></div>
+
+      <!-- clouds (each cloud contains 3 puffs) -->
+      <div class="cloud cloud1" aria-hidden="true">
+        <span class="puff"></span>
+        <span class="puff"></span>
+        <span class="puff"></span>
+      </div>
+      <div class="cloud cloud2" aria-hidden="true">
+        <span class="puff"></span>
+        <span class="puff"></span>
+        <span class="puff"></span>
+      </div>
+      <div class="cloud cloud3" aria-hidden="true">
+        <span class="puff"></span>
+        <span class="puff"></span>
+        <span class="puff"></span>
+      </div>
+
+      <!-- stars -->
+      <div class="star star1" aria-hidden="true"></div>
+      <div class="star star2" aria-hidden="true"></div>
+      <div class="star star3" aria-hidden="true"></div>
+      <div class="star star4" aria-hidden="true"></div>
+      <div class="star star5" aria-hidden="true"></div>
+      <div class="star star6" aria-hidden="true"></div>
+      <div class="star star7" aria-hidden="true"></div>
+      <div class="star star8" aria-hidden="true"></div>
+      <div class="star star9" aria-hidden="true"></div>
+      <div class="star star10" aria-hidden="true"></div>
+
+    </div>
+
+    <div id="statusLabel" class="status">Day</div>
+  </div>
+
+  <script>
+    (function(){
+      const body = document.body;
+      const toggle = document.getElementById('toggle');
+      const statusLabel = document.getElementById('statusLabel');
+      const THEME_KEY = 'fancy-sky-theme';
+
+      function setTheme(isNight){
+        if(isNight){
+          body.classList.add('night');
+          toggle.setAttribute('aria-checked','true');
+          statusLabel.textContent = 'Night';
+          localStorage.setItem(THEME_KEY,'night');
+        } else {
+          body.classList.remove('night');
+          toggle.setAttribute('aria-checked','false');
+          statusLabel.textContent = 'Day';
+          localStorage.setItem(THEME_KEY,'day');
+        }
+      }
+
+      function toggleTheme(){ setTheme(!body.classList.contains('night')); }
+
+      // click
+      toggle.addEventListener('click', (e)=>{ e.preventDefault(); toggleTheme(); });
+
+      // keyboard: Enter or Space toggles
+      toggle.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar'){
+          e.preventDefault(); toggleTheme();
+        }
+      });
+
+      // initialize from localStorage -> prefers-color-scheme -> default
+      const saved = localStorage.getItem(THEME_KEY);
+      if(saved === 'night') setTheme(true);
+      else if(saved === 'day') setTheme(false);
+      else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme(true);
+      else setTheme(false);
+
+    })();
+
+    console.log('site loaded');
+  </script>
+</body>
+</html>
